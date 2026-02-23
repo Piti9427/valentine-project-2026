@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Video backup (ต้นฉบับก่อนบีบอัด)
+src/assets/videos-backup
 *.local
 
 # Editor directories and files
