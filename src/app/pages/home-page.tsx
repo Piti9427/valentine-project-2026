@@ -375,7 +375,7 @@ export function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl mb-4">ภาพความทรงจำของเรา</h2>
+            <h2 className="text-4xl md:text-5xl mb-4">🎞️</h2>
             <p className="text-xl text-gray-600"></p>
           </motion.div>
 
@@ -494,7 +494,7 @@ export function HomePage() {
             className="text-center mb-16"
           >
             <Sparkles className="w-16 h-16 mx-auto mb-6 text-rose-500" />
-            <h2 className="text-4xl md:text-5xl mb-4">เหตุผลที่หัวใจของฉันเลือกเธอ</h2>
+            <h2 className="text-4xl md:text-5xl mb-4"></h2>
           </motion.div>
 
           <div className="max-w-4xl mx-auto space-y-4">
