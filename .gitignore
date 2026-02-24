@@ -10,7 +10,14 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Assets (เก็บบน Supabase)
+# src/assets/**
+# src/assets/videos-backup*
+
 *.local
+.env
+.env.*
 
 # Editor directories and files
 .vscode/*
