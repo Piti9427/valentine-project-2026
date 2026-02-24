@@ -2,32 +2,7 @@ import { motion, useScroll, useTransform } from 'motion/react';
 import { useState, useEffect, useRef } from 'react';
 import { Heart, Clock, Sparkles, Volume2, VolumeX } from 'lucide-react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
-
-// Dynamically import assets
-type AssetModule = { default: string };
-const imageModules = import.meta.glob<AssetModule>(
-  '@/assets/images/*.{jpeg,jpg,png,webp,avif,JPEG,JPG,PNG,WEBP,AVIF}',
-  { eager: true },
-);
-const videoModules = import.meta.glob<AssetModule>(
-  '@/assets/videos/*.{mp4,MP4,webm,WEBM,mov,MOV}',
-  { eager: true },
-);
-const musicModules = import.meta.glob<AssetModule>(
-  '@/assets/music/*.{mp3,wav,m4a,MP3,WAV,M4A}',
-  { eager: true },
-);
-
-// Extract URLs
-const allImages = Object.entries(imageModules)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, mod]) => mod.default);
-const allVideos = Object.entries(videoModules)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, mod]) => mod.default);
-const allMusic = Object.entries(musicModules)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, mod]) => mod.default);
+import { useSupabaseAssets } from '../hooks/useSupabaseAssets';
 
 // Define captions for images
 const predefinedCaptions = [
@@ -52,6 +27,13 @@ const predefinedCaptions = [
 ];
 
 export function HomePage() {
+  const { items: allImages, loading: imagesLoading, error: imagesError } =
+    useSupabaseAssets('images', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
+  const { items: allVideos, loading: videosLoading, error: videosError } =
+    useSupabaseAssets('videos', ['mp4', 'webm', 'mov']);
+  const { items: allMusic, loading: musicLoading, error: musicError } =
+    useSupabaseAssets('musics', ['mp3', 'wav', 'm4a']);
+
   const [years, setYears] = useState(0);
   const [months, setMonths] = useState(0);
   const [days, setDays] = useState(0);
@@ -141,7 +123,7 @@ export function HomePage() {
       window.removeEventListener('keydown', handleFirstInteraction);
       window.removeEventListener('touchstart', handleFirstInteraction);
     };
-  }, [isMusicEnabled]);
+  }, [isMusicEnabled, allMusic]);
 
 
   // Intersection Observer for Video Section (Video Only)
@@ -328,13 +310,24 @@ export function HomePage() {
             <p className="text-xl md:text-2xl text-gray-300 drop-shadow-md">
               ช่วงเวลาที่อยู่ในใจของเค้า
             </p>
-            {allMusic.length === 0 && (
-               <p className="text-sm text-gray-500 mt-2">(เพิ่มไฟล์เพลงลงใน src/assets/music เพื่อเล่นเพลงประกอบ)</p>
+            {!musicLoading && allMusic.length === 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                (เพิ่มไฟล์เพลงลงใน bucket musics ของ Supabase เพื่อเล่นเพลงประกอบ)
+              </p>
+            )}
+            {musicError && (
+              <p className="text-sm text-red-400 mt-2">โหลดเพลงไม่สำเร็จ: {musicError}</p>
             )}
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {allVideos.length > 0 ? (
+            {videosLoading ? (
+              <p className="text-center text-gray-400 col-span-full">กำลังโหลดวิดีโอ...</p>
+            ) : videosError ? (
+              <p className="text-center text-red-400 col-span-full">
+                โหลดวิดีโอไม่สำเร็จ: {videosError}
+              </p>
+            ) : allVideos.length > 0 ? (
               allVideos.map((videoSrc, index) => (
                 <motion.div
                   key={index}
@@ -344,14 +337,14 @@ export function HomePage() {
                   transition={{ delay: index * 0.1 }}
                   className="relative rounded-2xl overflow-hidden shadow-2xl bg-gray-900 aspect-[3/4] group"
                 >
-	                  <video
-	                    ref={(el) => {
-	                      videoRefs.current[index] = el;
-	                    }}
-	                    className="w-full h-full object-cover rounded-2xl cursor-pointer"
-	                    src={videoSrc}
-	                    muted // Always muted for autoplay/music support
-	                    playsInline
+                  <video
+                    ref={(el) => {
+                      videoRefs.current[index] = el;
+                    }}
+                    className="w-full h-full object-cover rounded-2xl cursor-pointer"
+                    src={videoSrc}
+                    muted // Always muted for autoplay/music support
+                    playsInline
                     loop
                     controls
                   >
@@ -380,32 +373,42 @@ export function HomePage() {
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {photos.map((photo, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                className="group relative bg-white rounded-2xl shadow-lg overflow-hidden"
-              >
-                <div className="aspect-[4/5] overflow-hidden">
-                  <ImageWithFallback
-                    src={photo.url}
-                    alt={`Memory ${index + 1}`}
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                  />
-                </div>
+            {imagesLoading ? (
+              <p className="text-center text-gray-500 col-span-full">กำลังโหลดรูปภาพ...</p>
+            ) : imagesError ? (
+              <p className="text-center text-red-500 col-span-full">
+                โหลดรูปไม่สำเร็จ: {imagesError}
+              </p>
+            ) : photos.length > 0 ? (
+              photos.map((photo, index) => (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6"
+                  key={index}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  whileHover={{ y: -10, scale: 1.02 }}
+                  className="group relative bg-white rounded-2xl shadow-lg overflow-hidden"
                 >
-                  <p className="text-white text-lg">{photo.caption}</p>
+                  <div className="aspect-[4/5] overflow-hidden">
+                    <ImageWithFallback
+                      src={photo.url}
+                      alt={`Memory ${index + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                  </div>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    whileHover={{ opacity: 1 }}
+                    className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-6"
+                  >
+                    <p className="text-white text-lg">{photo.caption}</p>
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            ))}
+              ))
+            ) : (
+              <p className="text-center text-gray-500 col-span-full">ไม่มีรูปภาพที่จะแสดง</p>
+            )}
           </div>
         </div>
       </section>

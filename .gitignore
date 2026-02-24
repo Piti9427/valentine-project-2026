@@ -11,9 +11,13 @@ node_modules
 dist
 dist-ssr
 
-# Video backup (ต้นฉบับก่อนบีบอัด)
-src/assets/videos-backup
+# Assets (เก็บบน Supabase)
+src/assets/**
+src/assets/videos-backup*
+
 *.local
+.env
+.env.*
 
 # Editor directories and files
 .vscode/*
