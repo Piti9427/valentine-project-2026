@@ -1,19 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { Lock, Heart, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
-
-// Dynamically import assets (same as home-page.tsx)
-type AssetModule = { default: string };
-const imageModules = import.meta.glob<AssetModule>(
-  '@/assets/images/*.{jpeg,jpg,png,webp,avif,JPEG,JPG,PNG,WEBP,AVIF}',
-  { eager: true },
-);
-
-// Extract URLs
-const allImages = Object.entries(imageModules)
-  .sort(([a], [b]) => a.localeCompare(b))
-  .map(([, mod]) => mod.default);
+import { useSupabaseAssets } from '../hooks/useSupabaseAssets';
 
 // Captions from home-page.tsx
 const predefinedCaptions = [
@@ -47,7 +36,27 @@ const reasons = [
   'อยากไปว่ายน้ำกับเธอด้วยกันอีกจังเลยครับ',
 ];
 
+const hashString = (value: string) => {
+  let hash = 0;
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash << 5) - hash + value.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const createSeededRandom = (seed: number) => {
+  let state = seed % 2147483647;
+  if (state <= 0) state += 2147483646;
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
+  };
+};
+
 export function PrivateGalleryPage() {
+  const { items: allImages, loading: imagesLoading, error: imagesError } =
+    useSupabaseAssets('images', ['jpeg', 'jpg', 'png', 'webp', 'avif']);
   const [password, setPassword] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -66,26 +75,32 @@ export function PrivateGalleryPage() {
     }
   };
 
-  // Map local images with stable random values and pixel-based Y for better containment
-  const [privatePhotos] = useState(() => 
-    allImages.map((url, index) => ({
-      url,
-      note: predefinedCaptions[index % predefinedCaptions.length] || '',
-      rotate: (Math.random() - 0.5) * 15,
-      x: (index % 3) * 30 + 5 + (Math.random() * 5), // Spread them out in 3 columns
-      y: Math.floor(index / 3) * 400 + (Math.random() * 40), // Spaced by 400px per row
-    }))
+  const privatePhotos = useMemo(
+    () =>
+      allImages.map((url, index) => {
+        const rng = createSeededRandom(hashString(url) + index);
+        return {
+          url,
+          note: predefinedCaptions[index % predefinedCaptions.length] || '',
+          rotate: (rng() - 0.5) * 15,
+          x: (index % 3) * 30 + 5 + rng() * 5,
+          y: Math.floor(index / 3) * 400 + rng() * 40,
+        };
+      }),
+    [allImages],
   );
 
   // Map reasons with stable random values and pixel-based Y
-  const [privateNotes] = useState(() => 
-    reasons.map((text, index) => ({
-      text,
-      color: ['from-rose-200 to-pink-200', 'from-pink-200 to-red-200', 'from-red-200 to-rose-200'][index % 3],
-      rotate: (Math.random() - 0.5) * 10,
-      x: (index % 2) * 45 + 10 + (Math.random() * 5),
-      y: Math.floor(index / 2) * 250 + (Math.random() * 30),
-    }))
+  const privateNotes = useMemo(
+    () =>
+      reasons.map((text, index) => ({
+        text,
+        color: ['from-rose-200 to-pink-200', 'from-pink-200 to-red-200', 'from-red-200 to-rose-200'][index % 3],
+        rotate: (Math.random() - 0.5) * 10,
+        x: (index % 2) * 45 + 10 + Math.random() * 5,
+        y: Math.floor(index / 2) * 250 + Math.random() * 30,
+      })),
+    [],
   );
 
   return (
@@ -189,30 +204,38 @@ export function PrivateGalleryPage() {
 
               {/* Draggable Photos Section - Adjusted min-h for pixel-based children */}
               <div className="relative min-h-[2500px] mb-20">
-                {privatePhotos.map((photo, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, scale: 0, rotate: 0 }}
-                    animate={{ opacity: 1, scale: 1, rotate: photo.rotate }}
-                    transition={{ delay: (index % 10) * 0.1 }}
-                    whileHover={{ scale: 1.1, rotate: 0, zIndex: 100 }}
-                    drag
-                    dragConstraints={{ top: -200, bottom: 2500, left: -200, right: 1200 }}
-                    className="absolute cursor-move"
-                    style={{ left: `${photo.x}%`, top: `${photo.y}px`, width: '280px' }}
-                  >
-                    <div className="bg-white p-3 pb-8 rounded shadow-2xl transform transition-transform">
-                      <ImageWithFallback
-                        src={photo.url}
-                        alt={`Memory ${index + 1}`}
-                        className="w-full h-64 object-cover rounded-sm pointer-events-none"
-                      />
-                      <p className="text-center mt-4 text-sm text-gray-700 italic font-serif px-2">
-                        {photo.note}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                {imagesLoading ? (
+                  <p className="text-center text-rose-200">กำลังโหลดรูปภาพ...</p>
+                ) : imagesError ? (
+                  <p className="text-center text-red-200">โหลดรูปไม่สำเร็จ: {imagesError}</p>
+                ) : privatePhotos.length > 0 ? (
+                  privatePhotos.map((photo, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, scale: 0, rotate: 0 }}
+                      animate={{ opacity: 1, scale: 1, rotate: photo.rotate }}
+                      transition={{ delay: (index % 10) * 0.1 }}
+                      whileHover={{ scale: 1.1, rotate: 0, zIndex: 100 }}
+                      drag
+                      dragConstraints={{ top: -200, bottom: 2500, left: -200, right: 1200 }}
+                      className="absolute cursor-move"
+                      style={{ left: `${photo.x}%`, top: `${photo.y}px`, width: '280px' }}
+                    >
+                      <div className="bg-white p-3 pb-8 rounded shadow-2xl transform transition-transform">
+                        <ImageWithFallback
+                          src={photo.url}
+                          alt={`Memory ${index + 1}`}
+                          className="w-full h-64 object-cover rounded-sm pointer-events-none"
+                        />
+                        <p className="text-center mt-4 text-sm text-gray-700 italic font-serif px-2">
+                          {photo.note}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <p className="text-center text-rose-200">ไม่มีรูปภาพที่จะแสดง</p>
+                )}
               </div>
 
               {/* Draggable Notes Section */}
