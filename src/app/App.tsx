@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Navbar } from './components/navbar';
 import { HomePage } from './pages/home-page';
-import { AuthGate } from './auth/AuthGate';
 // import { OurStoryPage } from './pages/our-story-page';
 // import { LoveLettersPage } from './pages/love-letters-page';
 // import { MemoriesPage } from './pages/memories-page';
@@ -11,19 +10,17 @@ import { FloatingHearts } from './components/floating-hearts';
 export default function App() {
   return (
     <Router>
-      <AuthGate>
-        <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 relative">
-          <FloatingHearts />
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            {/* <Route path="/our-story" element={<OurStoryPage />} />
-            <Route path="/love-letters" element={<LoveLettersPage />} />
-            <Route path="/memories" element={<MemoriesPage />} /> */}
-            {/* <Route path="/private" element={<PrivateGalleryPage />} /> */}
-          </Routes>
-        </div>
-      </AuthGate>
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 relative">
+        <FloatingHearts />
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          {/* <Route path="/our-story" element={<OurStoryPage />} />
+          <Route path="/love-letters" element={<LoveLettersPage />} />
+          <Route path="/memories" element={<MemoriesPage />} /> */}
+          {/* <Route path="/private" element={<PrivateGalleryPage />} /> */}
+        </Routes>
+      </div>
     </Router>
   );
 }
