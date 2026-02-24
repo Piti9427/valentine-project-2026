@@ -12,3 +12,25 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export type SupabaseHealthResult = {
+  ok: boolean;
+  message: string;
+};
+
+export async function checkSupabaseConnection(
+  bucket = 'images',
+): Promise<SupabaseHealthResult> {
+  try {
+    const { error } = await supabase.storage.from(bucket).list('', { limit: 1 });
+    if (error) {
+      return { ok: false, message: error.message };
+    }
+    return { ok: true, message: 'Connected to Supabase successfully' };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
