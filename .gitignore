@@ -12,8 +12,8 @@ dist
 dist-ssr
 
 # Assets (เก็บบน Supabase)
-src/assets/**
-src/assets/videos-backup*
+# src/assets/**
+# src/assets/videos-backup*
 
 *.local
 .env
