@@ -10,7 +10,7 @@ import { FloatingHearts } from './components/floating-hearts';
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 relative">
+      <div className="min-h-[100svh] bg-gradient-to-br from-rose-50 via-pink-50 to-red-50 relative overflow-x-clip">
         <FloatingHearts />
         <Navbar />
         <Routes>

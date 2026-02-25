@@ -93,13 +93,16 @@ export function PrivateGalleryPage() {
   // Map reasons with stable random values and pixel-based Y
   const privateNotes = useMemo(
     () =>
-      reasons.map((text, index) => ({
-        text,
-        color: ['from-rose-200 to-pink-200', 'from-pink-200 to-red-200', 'from-red-200 to-rose-200'][index % 3],
-        rotate: (Math.random() - 0.5) * 10,
-        x: (index % 2) * 45 + 10 + Math.random() * 5,
-        y: Math.floor(index / 2) * 250 + Math.random() * 30,
-      })),
+      reasons.map((text, index) => {
+        const rng = createSeededRandom(hashString(`${text}-${index}`));
+        return {
+          text,
+          color: ['from-rose-200 to-pink-200', 'from-pink-200 to-red-200', 'from-red-200 to-rose-200'][index % 3],
+          rotate: (rng() - 0.5) * 10,
+          x: (index % 2) * 45 + 10 + rng() * 5,
+          y: Math.floor(index / 2) * 250 + rng() * 30,
+        };
+      }),
     [],
   );
 

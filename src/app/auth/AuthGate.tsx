@@ -20,7 +20,6 @@ const parseAllowedEmails = (value: string | undefined) =>
 export function AuthGate({ children }: AuthGateProps) {
   const { user, loading } = useSupabaseAuth();
   const [signInError, setSignInError] = useState<string | null>(null);
-  const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const allowedEmails = useMemo(
     () => parseAllowedEmails(import.meta.env.VITE_ALLOWED_EMAILS),
     [],
@@ -29,11 +28,11 @@ export function AuthGate({ children }: AuthGateProps) {
   const isAllowed =
     allowedEmails.length === 0 ||
     (!!user?.email && allowedEmails.includes(user.email.toLowerCase()));
+  const deniedEmail = !loading && user && !isAllowed ? (user.email ?? '') : null;
 
   useEffect(() => {
     if (loading || !user) return;
     if (!isAllowed) {
-      setDeniedEmail(user.email ?? '');
       void supabase.auth.signOut();
     }
   }, [loading, user, isAllowed]);
