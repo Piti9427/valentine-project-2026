@@ -5,6 +5,9 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { useSupabaseAssets } from "../hooks/useSupabaseAssets";
 // import { checkSupabaseConnection } from "../lib/supabase";
 
+const YOUTUBE_MUSIC_VIDEO_ID = "Z6EntwuX_Xs";
+const YOUTUBE_MUSIC_EMBED_URL = `https://www.youtube.com/embed/${YOUTUBE_MUSIC_VIDEO_ID}?autoplay=1&loop=1&playlist=${YOUTUBE_MUSIC_VIDEO_ID}&controls=0&modestbranding=1&rel=0`;
+
 // Define captions for images
 const predefinedCaptions = [
   "พาเธอไปทำเล็บแถวตลาดชัชวาล เป็นแรก ๆ เลยที่ได้ไปกินข้าวด้วยกันข้างนอก",
@@ -38,18 +41,12 @@ export function HomePage() {
     loading: videosLoading,
     error: videosError,
   } = useSupabaseAssets("videos", ["mp4", "webm", "mov"]);
-  const {
-    items: allMusic,
-    loading: musicLoading,
-    error: musicError,
-  } = useSupabaseAssets("musics", ["mp3", "wav", "m4a"]);
 
   const [years, setYears] = useState(0);
   const [months, setMonths] = useState(0);
   const [days, setDays] = useState(0);
   const [showPromise, setShowPromise] = useState(false);
   const [isMusicEnabled, setIsMusicEnabled] = useState(true);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   // const [connectionState, setConnectionState] = useState<
   //   "checking" | "ok" | "error"
   // >("checking");
@@ -60,7 +57,6 @@ export function HomePage() {
   const heroRef = useRef<HTMLElement>(null);
   const videoSectionRef = useRef<HTMLElement>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const { scrollYProgress } = useScroll({
     target: heroRef,
@@ -130,46 +126,6 @@ export function HomePage() {
   //   };
   // }, []);
 
-  // Music Auto-play Logic (On Mount & First Interaction)
-  useEffect(() => {
-    if (allMusic.length === 0) return;
-
-    const tryPlayMusic = async () => {
-      const audio = audioRef.current;
-      if (!audio || !isMusicEnabled) return;
-      if (!audio.paused) return;
-
-      try {
-        await audio.play();
-      } catch {
-        // Auto-play blocked until user interaction.
-      }
-    };
-
-    if (!isMusicEnabled) {
-      audioRef.current?.pause();
-      return;
-    }
-
-    void tryPlayMusic();
-
-    const handleFirstInteraction = () => {
-      void tryPlayMusic();
-    };
-
-    window.addEventListener("click", handleFirstInteraction, { once: true });
-    window.addEventListener("keydown", handleFirstInteraction, { once: true });
-    window.addEventListener("touchstart", handleFirstInteraction, {
-      once: true,
-    });
-
-    return () => {
-      window.removeEventListener("click", handleFirstInteraction);
-      window.removeEventListener("keydown", handleFirstInteraction);
-      window.removeEventListener("touchstart", handleFirstInteraction);
-    };
-  }, [isMusicEnabled, allMusic]);
-
   // Intersection Observer for Video Section (Video Only)
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -202,22 +158,8 @@ export function HomePage() {
     };
   }, []);
 
-  const toggleMusic = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isMusicEnabled) {
-      setIsMusicEnabled(false);
-      audio.pause();
-      return;
-    }
-
-    setIsMusicEnabled(true);
-    try {
-      await audio.play();
-    } catch {
-      // If blocked, the first-interaction handler above will retry.
-    }
+  const toggleMusic = () => {
+    setIsMusicEnabled((prev) => !prev);
   };
 
   const photos = allImages.map((imageUrl, index) => ({
@@ -269,40 +211,38 @@ export function HomePage() {
       </div>
       */}
 
-      {/* Background Audio */}
-      {allMusic.length > 0 && (
-        <audio
-          ref={audioRef}
-          src={allMusic[0]}
-          loop
-          preload="auto"
-          onPlay={() => setIsMusicPlaying(true)}
-          onPause={() => setIsMusicPlaying(false)}
+      {/* Background Music (YouTube) */}
+      {isMusicEnabled && (
+        <iframe
+          className="hidden"
+          width="0"
+          height="0"
+          src={YOUTUBE_MUSIC_EMBED_URL}
+          title="Background Music"
+          allow="autoplay; encrypted-media"
         />
       )}
 
       {/* Floating Music Control */}
-      {allMusic.length > 0 && (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
-          {isMusicEnabled && !isMusicPlaying && (
-            <span className="bg-white/90 text-xs px-2 py-1 rounded shadow text-rose-500 animate-pulse pointer-events-none">
-              กดเพื่อเปิดเพลงคลอ 🎵
-            </span>
+      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-2">
+        {!isMusicEnabled && (
+          <span className="bg-white/90 text-xs px-2 py-1 rounded shadow text-rose-500 animate-pulse pointer-events-none">
+            กดเพื่อเปิดเพลงคลอ 🎵
+          </span>
+        )}
+        <button
+          onClick={toggleMusic}
+          className="p-4 bg-white/90 backdrop-blur-md rounded-full shadow-2xl hover:bg-white hover:scale-110 transition-all text-rose-500 border-2 border-rose-100 cursor-pointer"
+          title={isMusicEnabled ? "ปิดเพลง" : "เปิดเพลง"}
+          aria-label={isMusicEnabled ? "ปิดเพลง" : "เปิดเพลง"}
+        >
+          {isMusicEnabled ? (
+            <Volume2 className="w-6 h-6" />
+          ) : (
+            <VolumeX className="w-6 h-6" />
           )}
-          <button
-            onClick={toggleMusic}
-            className="p-4 bg-white/90 backdrop-blur-md rounded-full shadow-2xl hover:bg-white hover:scale-110 transition-all text-rose-500 border-2 border-rose-100 cursor-pointer"
-            title={isMusicEnabled ? "ปิดเพลง" : "เปิดเพลง"}
-            aria-label={isMusicEnabled ? "ปิดเพลง" : "เปิดเพลง"}
-          >
-            {isMusicEnabled ? (
-              <Volume2 className="w-6 h-6" />
-            ) : (
-              <VolumeX className="w-6 h-6" />
-            )}
-          </button>
-        </div>
-      )}
+        </button>
+      </div>
 
       {/* Hero Section */}
       <motion.section
@@ -388,17 +328,6 @@ export function HomePage() {
             <p className="text-xl md:text-2xl text-gray-300 drop-shadow-md">
               ช่วงเวลาที่อยู่ในใจของเค้า
             </p>
-            {!musicLoading && allMusic.length === 0 && (
-              <p className="text-sm text-gray-500 mt-2">
-                (เพิ่มไฟล์เพลงลงใน bucket musics ของ Supabase
-                เพื่อเล่นเพลงประกอบ)
-              </p>
-            )}
-            {musicError && (
-              <p className="text-sm text-red-400 mt-2">
-                โหลดเพลงไม่สำเร็จ: {musicError}
-              </p>
-            )}
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
